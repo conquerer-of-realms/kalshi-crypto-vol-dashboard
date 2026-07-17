@@ -1,0 +1,82 @@
+name: Deploy dashboard
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+  schedule:
+    # 00:20 UTC, Tuesday through Saturday -- captures Monday-through-Friday
+    # observations after the midnight-UTC crypto close and the Kalshi 4pm ET
+    # close for the same calendar date. GitHub may run this a bit late; the
+    # site's freshness badge is derived from the actual generated timestamp,
+    # not this schedule.
+    - cron: "20 0 * * 2-6"
+
+# Only one Pages deployment at a time; a newer run supersedes an older
+# in-flight one instead of racing it.
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Node LTS
+        uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test
+
+      - name: Update dashboard data (live APIs)
+        run: npm run data:update
+
+      - name: Build
+        run: npm run build
+        env:
+          # Vite also infers this automatically from GITHUB_REPOSITORY, but
+          # setting it explicitly keeps the base path correct even if this
+          # workflow is ever copied into a differently-named fork.
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
