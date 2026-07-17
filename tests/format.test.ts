@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatOrdinal, formatPercentileRank } from "../src/lib/format.ts";
+import { formatOrdinal, formatPercentileRank, formatSignalPp, formatSignedSignalPp } from "../src/lib/format.ts";
 
 describe("formatOrdinal", () => {
   it("handles the standard 1st/2nd/3rd/4th pattern", () => {
@@ -34,5 +34,25 @@ describe("formatPercentileRank", () => {
   it("appends 'pct' to the ordinal", () => {
     expect(formatPercentileRank(92)).toBe("92nd pct");
     expect(formatPercentileRank(50)).toBe("50th pct");
+  });
+});
+
+describe("formatSignalPp", () => {
+  it("converts a raw decimal probability change to percentage points", () => {
+    expect(formatSignalPp(0.4132)).toBe("41.32 pp");
+    expect(formatSignalPp(-0.025)).toBe("-2.50 pp");
+  });
+
+  it("renders a dash for null/undefined", () => {
+    expect(formatSignalPp(null)).toBe("—");
+    expect(formatSignalPp(undefined)).toBe("—");
+  });
+});
+
+describe("formatSignedSignalPp", () => {
+  it("prefixes a '+' for non-negative values and converts to pp", () => {
+    expect(formatSignedSignalPp(0.4132)).toBe("+41.32 pp");
+    expect(formatSignedSignalPp(-0.025)).toBe("-2.50 pp");
+    expect(formatSignedSignalPp(0)).toBe("+0.00 pp");
   });
 });

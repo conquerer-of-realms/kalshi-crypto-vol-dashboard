@@ -52,12 +52,22 @@ export function formatPrice(value: number | null | undefined): string {
   });
 }
 
-export function formatSignal(value: number | null | undefined): string {
-  return formatNumberOrDash(value, (v) => v.toFixed(4));
-}
-
 export function formatSignedSignal(value: number | null | undefined): string {
   return formatNumberOrDash(value, (v) => `${v >= 0 ? "+" : ""}${v.toFixed(4)}`);
+}
+
+/**
+ * Kalshi probability changes displayed in percentage points (pp) rather
+ * than raw decimals, e.g. 0.4132 -> "41.32 pp". Raw decimal values are kept
+ * unconverted in chart tooltips and in the generated JSON -- this formatter
+ * is only for primary UI text (table cells, card text, summary stats).
+ */
+export function formatSignalPp(value: number | null | undefined, decimals = 2): string {
+  return formatNumberOrDash(value, (v) => `${(v * 100).toFixed(decimals)} pp`);
+}
+
+export function formatSignedSignalPp(value: number | null | undefined, decimals = 2): string {
+  return formatNumberOrDash(value, (v) => `${v >= 0 ? "+" : ""}${(v * 100).toFixed(decimals)} pp`);
 }
 
 export function formatVolume(value: number | null | undefined): string {

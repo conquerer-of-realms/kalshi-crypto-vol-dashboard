@@ -60,7 +60,12 @@ export function KalshiSignalChart({ series }: KalshiSignalChartProps) {
               <LineChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
                 <CartesianGrid stroke="var(--color-border)" vertical={false} />
                 <XAxis dataKey="date" tickFormatter={formatDateShort} stroke="var(--color-text-muted)" fontSize={11} minTickGap={24} />
-                <YAxis stroke="var(--color-text-muted)" fontSize={11} width={56} />
+                <YAxis
+                  stroke="var(--color-text-muted)"
+                  fontSize={11}
+                  width={56}
+                  tickFormatter={(v: number) => `${(v * 100).toFixed(1)}pp`}
+                />
                 <Tooltip content={<ChartTooltip />} />
                 <Line type="monotone" dataKey="deltaVw" stroke="var(--color-accent-pink)" strokeWidth={2} dot={false} isAnimationActive={false} connectNulls={false} />
                 <Line type="monotone" dataKey="absSignal" stroke="var(--color-accent-cyan)" strokeWidth={2} dot={false} isAnimationActive={false} connectNulls={false} />
@@ -79,7 +84,8 @@ export function KalshiSignalChart({ series }: KalshiSignalChartProps) {
           </div>
           <p className="chart-caption">
             Daily volume-weighted probability change, last {Math.min(DEFAULT_WINDOW_DAYS, data.length)} valid
-            trading days. Gaps mean no valid signal that day -- never zero-filled.
+            trading days. Gaps mean no valid signal that day -- never zero-filled. Axis shown in percentage
+            points (pp); tooltip values are the raw decimal probability change.
           </p>
         </>
       )}

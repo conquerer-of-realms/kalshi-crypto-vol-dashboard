@@ -79,9 +79,9 @@ export default function App() {
         </details>
       )}
 
-      <SummaryRow summary={data.summary} totalSeries={data.series.length} totalAssets={data.assets.length} />
+      <SummaryRow summary={data.summary} series={data.series} assets={data.assets} totalAssets={data.assets.length} />
 
-      <AssetGrid assets={data.assets} />
+      <AssetGrid assets={data.assets} series={data.series} />
 
       <SignalTable series={data.series} />
 

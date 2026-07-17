@@ -1,6 +1,14 @@
 import { useMemo, useState } from "react";
 import type { SeriesSummary, SeriesStatus } from "../lib/types.ts";
-import { formatDateShort, formatInteger, formatPercentileRank, formatSignal, formatSignedSignal, formatVolume } from "../lib/format.ts";
+import {
+  formatDateShort,
+  formatInteger,
+  formatPercentileRank,
+  formatSignalPp,
+  formatSignedSignalPp,
+  formatVolume,
+} from "../lib/format.ts";
+import { computeSeriesFreshness, SERIES_FRESHNESS_LABEL, type SeriesFreshness } from "../lib/seriesFreshness.ts";
 
 interface SignalTableProps {
   series: SeriesSummary[];
@@ -21,6 +29,15 @@ function statusBadgeClass(status: SeriesStatus): string {
   return "badge--neutral";
 }
 
+// Reuses the existing fresh/stale/failed badge palette: fresh=green,
+// stale=amber, dormant=red (dormant is the most severe tier -- data has
+// stopped updating for over two weeks).
+function freshnessBadgeClass(freshness: SeriesFreshness): string {
+  if (freshness === "fresh") return "badge--fresh";
+  if (freshness === "stale") return "badge--stale";
+  return "badge--failed";
+}
+
 function sortValue(s: SeriesSummary, key: SortKey): number | string {
   switch (key) {
     case "absSignal":
@@ -37,6 +54,8 @@ function sortValue(s: SeriesSummary, key: SortKey): number | string {
 export function SignalTable({ series }: SignalTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>("absSignal");
   const [sortDir, setSortDir] = useState<1 | -1>(-1);
+
+  const now = useMemo(() => new Date(), []);
 
   const sorted = useMemo(() => {
     const copy = [...series];
@@ -87,43 +106,56 @@ export function SignalTable({ series }: SignalTableProps) {
               <th>Markets</th>
               <th>{headerButton("volume", "Volume")}</th>
               <th>Data date</th>
+              <th>Freshness</th>
               <th>Status</th>
             </tr>
           </thead>
           <tbody>
-            {sorted.map((s) => (
-              <tr key={s.ticker}>
-                <td data-label="Series">
-                  <strong>{s.ticker}</strong>{" "}
-                  {s.tier === "experimental" && <span className="badge badge--tier">experimental</span>}
-                </td>
-                <td data-label="Macro domain">{s.macroDomain}</td>
-                <td data-label="Latest delta_vw" className="tabular-nums">
-                  {formatSignedSignal(s.latestDeltaVw)}
-                </td>
-                <td data-label="Abs. signal" className="tabular-nums">
-                  {formatSignal(s.latestAbsSignal)}
-                </td>
-                <td data-label="30d pct" className="tabular-nums">
-                  {formatPercentileRank(s.percentile30d)}
-                </td>
-                <td data-label="90d pct" className="tabular-nums">
-                  {formatPercentileRank(s.percentile90d)}
-                </td>
-                <td data-label="Markets" className="tabular-nums">
-                  {formatInteger(s.marketCount)}
-                </td>
-                <td data-label="Volume" className="tabular-nums">
-                  {formatVolume(s.totalWeight)}
-                </td>
-                <td data-label="Data date" className="tabular-nums">
-                  {formatDateShort(s.latestDate)}
-                </td>
-                <td data-label="Status">
-                  <span className={`badge ${statusBadgeClass(s.status)}`}>{STATUS_LABEL[s.status]}</span>
-                </td>
-              </tr>
-            ))}
+            {sorted.map((s) => {
+              const freshness = computeSeriesFreshness(s.latestDate, now);
+              return (
+                <tr key={s.ticker}>
+                  <td data-label="Series">
+                    <strong>{s.ticker}</strong>{" "}
+                    {s.tier === "experimental" && <span className="badge badge--tier">experimental</span>}
+                  </td>
+                  <td data-label="Macro domain">{s.macroDomain}</td>
+                  <td data-label="Latest delta_vw" className="tabular-nums">
+                    {formatSignedSignalPp(s.latestDeltaVw)}
+                  </td>
+                  <td data-label="Abs. signal" className="tabular-nums">
+                    {formatSignalPp(s.latestAbsSignal)}
+                  </td>
+                  <td data-label="30d pct" className="tabular-nums">
+                    {formatPercentileRank(s.percentile30d)}
+                  </td>
+                  <td data-label="90d pct" className="tabular-nums">
+                    {formatPercentileRank(s.percentile90d)}
+                  </td>
+                  <td data-label="Markets" className="tabular-nums">
+                    {formatInteger(s.marketCount)}
+                  </td>
+                  <td data-label="Volume" className="tabular-nums">
+                    {formatVolume(s.totalWeight)}
+                  </td>
+                  <td data-label="Data date" className="tabular-nums">
+                    {formatDateShort(s.latestDate)}
+                  </td>
+                  <td data-label="Freshness">
+                    {freshness ? (
+                      <span className={`badge ${freshnessBadgeClass(freshness)}`}>
+                        {SERIES_FRESHNESS_LABEL[freshness]}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td data-label="Status">
+                    <span className={`badge ${statusBadgeClass(s.status)}`}>{STATUS_LABEL[s.status]}</span>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
