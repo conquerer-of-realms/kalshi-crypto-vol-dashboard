@@ -1,12 +1,7 @@
-import type { AssetSummary, PaperDirection, SeriesSummary } from "../lib/types.ts";
-import {
-  formatPercent,
-  formatPercentileRank,
-  formatPrice,
-  formatSignalPp,
-  formatSignedPercent,
-} from "../lib/format.ts";
+import type { AssetSummary, SeriesSummary } from "../lib/types.ts";
+import { formatPercent, formatPercentileLabel, formatPrice, formatSignalPp, formatSignedPercent } from "../lib/format.ts";
 import { getMatchedSeriesFreshness } from "../lib/deriveSummary.ts";
+import { friendlyChannelName, historicalRelationshipFor } from "../lib/channelPresentation.ts";
 import { computeSignalActivity, SIGNAL_ACTIVITY_LABEL, type SignalActivity } from "../lib/signalActivity.ts";
 import { RVolSparkline } from "./RVolSparkline.tsx";
 import { InfoTip } from "./InfoTip.tsx";
@@ -16,17 +11,11 @@ interface AssetCardProps {
   series: SeriesSummary[];
 }
 
-const DIRECTION_LABEL: Record<PaperDirection, string> = {
-  higher: "Higher expected volatility",
-  lower: "Lower expected volatility",
-  mixed: "Mixed",
-  no_signal: "No reliable signal",
-};
-
-function activityBadgeClass(activity: SignalActivity): string {
+function statusBadgeClass(activity: SignalActivity | null): string {
   if (activity === "active") return "badge--pink";
-  if (activity === "watch") return "badge--tier";
-  return "badge--neutral";
+  if (activity === "watch") return "badge--watch";
+  if (activity === "no_elevated") return "badge--neutral";
+  return "badge--unreliable";
 }
 
 export function AssetCard({ asset, series }: AssetCardProps) {
@@ -44,6 +33,7 @@ export function AssetCard({ asset, series }: AssetCardProps) {
   const activity: SignalActivity | null = hasReliableChannel
     ? computeSignalActivity(asset.signalPercentile90d, getMatchedSeriesFreshness(asset, series))
     : null;
+  const statusLabel = activity ? SIGNAL_ACTIVITY_LABEL[activity] : "No reliable signal";
 
   return (
     <article className="asset-card panel" aria-labelledby={`asset-${asset.symbol}-name`}>
@@ -64,22 +54,14 @@ export function AssetCard({ asset, series }: AssetCardProps) {
 
       <div className="asset-card__metrics">
         <div>
-          <div className="metric-label">5-day RVol (ann.)</div>
+          <div className="metric-label">5-day volatility</div>
           <div className="metric-value tabular-nums">{formatPercent(asset.rvol5)}</div>
         </div>
         <div>
-          <div className="metric-label">20-day RVol avg</div>
-          <div className="metric-value tabular-nums">{formatPercent(asset.rvol20Avg)}</div>
-        </div>
-        <div>
-          <div className="metric-label">Vs. 20d avg</div>
+          <div className="metric-label">vs. 20-day average</div>
           <div className={`metric-value tabular-nums ${rvolChangeClass}`}>
             {formatSignedPercent(asset.rvolChangeVs20dAvg)}
           </div>
-        </div>
-        <div>
-          <div className="metric-label">Signal percentile (90d)</div>
-          <div className="metric-value tabular-nums">{formatPercentileRank(asset.signalPercentile90d)}</div>
         </div>
       </div>
 
@@ -87,28 +69,34 @@ export function AssetCard({ asset, series }: AssetCardProps) {
 
       <div className="asset-card__channel">
         <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
-          <span className="badge badge--pink">{primaryChannel ? primaryChannel.seriesTicker : "No channel"}</span>
-          <span className="badge badge--neutral">{asset.evidenceBadge}</span>
-          <InfoTip label="This relationship is probabilistic, based on historical statistical association in the source paper -- not a deterministic or guaranteed forecast." />
+          <span className={`badge ${statusBadgeClass(activity)}`}>{statusLabel}</span>
+          <InfoTip
+            label={
+              <>
+                This relationship is probabilistic, based on historical statistical association in the source
+                paper -- not a deterministic or guaranteed forecast.
+                <br />
+                <br />
+                <strong>Research strength:</strong> {asset.evidenceBadge}
+                {primaryChannel ? ` — ${primaryChannel.description}` : ""}
+              </>
+            }
+          />
         </div>
 
-        {/* Signal activity: whether today's reading is actually elevated --
-            kept visually and semantically separate from the paper's
-            historical direction finding below, so a backward-looking
-            association is never read as an active, right-now forecast. */}
-        <div>
-          <span className={`badge ${activity ? activityBadgeClass(activity) : "badge--neutral"}`}>
-            {activity ? SIGNAL_ACTIVITY_LABEL[activity] : "No reliable signal"}
-          </span>
-        </div>
+        {hasReliableChannel && (
+          <div className="text-secondary" style={{ fontSize: "0.82rem" }}>
+            <div>Matched channel: {asset.primaryChannelTicker ? friendlyChannelName(asset.symbol, asset.primaryChannelTicker) : "—"}</div>
+            <div className="tabular-nums">
+              Current reading: {formatPercentileLabel(asset.signalPercentile90d)} &middot;{" "}
+              {formatSignalPp(asset.primaryChannelLatestAbsSignal)}
+            </div>
+          </div>
+        )}
 
-        <div className="text-secondary" style={{ fontSize: "0.82rem" }}>
-          <strong className="text-muted">Per the paper: </strong>
-          {hasReliableChannel ? DIRECTION_LABEL[asset.paperDirection] : DIRECTION_LABEL.no_signal} &mdash;{" "}
-          {primaryChannel?.description ?? "No reliable primary signal was found for this asset in the source paper."}
-        </div>
-        <div className="text-muted tabular-nums" style={{ fontSize: "0.78rem" }}>
-          Latest signal magnitude: {formatSignalPp(asset.primaryChannelLatestAbsSignal)}
+        <div style={{ fontSize: "0.82rem" }}>
+          <div className="text-muted">Historical relationship:</div>
+          <div className="text-secondary">{historicalRelationshipFor(asset)}</div>
         </div>
       </div>
     </article>

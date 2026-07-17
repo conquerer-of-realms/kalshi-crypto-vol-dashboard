@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 interface InfoTipProps {
-  label: string;
+  label: ReactNode;
 }
 
 /**

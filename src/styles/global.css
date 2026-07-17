@@ -233,6 +233,22 @@ p {
   border-color: rgba(236, 72, 153, 0.35);
 }
 
+/* Signal status: amber "watch" tier and a muted "no reliable signal" tier
+   (distinct from --neutral's "no elevated signal") -- never green/red, so
+   expected-volatility-direction status is never mistaken for observed price
+   or volatility direction. */
+.badge--watch {
+  background: rgba(250, 178, 25, 0.16);
+  color: #fab219;
+  border-color: rgba(250, 178, 25, 0.35);
+}
+
+.badge--unreliable {
+  background: rgba(133, 133, 143, 0.14);
+  color: var(--color-text-muted);
+  border-color: rgba(133, 133, 143, 0.28);
+}
+
 /* ---------- header ---------- */
 
 .header {
@@ -604,7 +620,7 @@ table.data-table {
   left: 50%;
   transform: translateX(-50%);
   width: max-content;
-  max-width: 240px;
+  max-width: 280px;
   background: var(--color-panel);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);

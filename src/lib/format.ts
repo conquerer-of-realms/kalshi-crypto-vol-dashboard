@@ -45,6 +45,10 @@ export function formatPercentileRank(value: number | null | undefined): string {
   return formatNumberOrDash(value, (v) => `${formatOrdinal(v)} pct`);
 }
 
+export function formatPercentileLabel(value: number | null | undefined): string {
+  return formatNumberOrDash(value, (v) => `${formatOrdinal(v)} percentile`);
+}
+
 export function formatPrice(value: number | null | undefined): string {
   return formatNumberOrDash(value, (v) => {
     const decimals = v >= 100 ? 2 : v >= 1 ? 4 : 6;
